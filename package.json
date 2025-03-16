@@ -1,5 +1,5 @@
 {
-  "name": "koelrpc",
+  "name": "koel-electron-discord-rpc",
   "version": "1.0.0",
   "description": "Koel music player Electron wrapper to make use of Discord RPC.",
   "main": "app.js",
@@ -8,8 +8,13 @@
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "author": "Jacob Noah",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/Jacob-Noah/koel-electron-discord-rpc"
+  },
   "license": "MIT",
   "devDependencies": {
+    "@electron/packager": "^18.3.6",
     "electron": "^35.0.2"
   },
   "dependencies": {
