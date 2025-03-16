@@ -1,0 +1,6 @@
+{
+  "clientId": "",
+  "clientSecret": "",
+  "appUrl": "https://koel.web.site",
+  "redirectUri": "http://localhost/callback_not_used"
+}
