@@ -5,6 +5,7 @@
   "main": "app.js",
   "scripts": {
     "start": "electron .",
+    "build": "npx @electron/packager . --overwrite --platform=win32 --arch=x64 --out=builds --icon=./assets/icon.ico",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "author": "Jacob Noah",
