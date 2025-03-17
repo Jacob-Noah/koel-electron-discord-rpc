@@ -13,7 +13,7 @@ Album title tooltip as expected
 ## Usage
 
 1. Create an application in the [Discord Developer Portal](https://discord.com/developers/applications) to get your client ID and secret.
-2. Clone this repository and run `npm install` to install the dependencies.
+2. Clone this repository and, assuming you have [Node.js](https://nodejs.org) installed, run `npm install` to install the dependencies.
 3. Copy `config.example.json` to create `config.json` and copy your Koel web client URL and Discord application strings to it respectively.
 4. Run `npm start` to test the application.
 5. Run `npm run build` to package the application for Windows x64. You can modify the `build` script in `package.json` to change the target.
