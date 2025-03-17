@@ -6,8 +6,10 @@ This is just a really simple Electron wrapper around the [Koel Music Server](htt
 
 ## Examples
 ![Example 1](/examples/1.png)
+
 Album title tooltip as expected
 ![Example 2](/examples/2.png)
+
 ![Example 3](/examples/3.png)
 
 ## Usage
