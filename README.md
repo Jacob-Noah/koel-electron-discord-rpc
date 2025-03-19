@@ -16,8 +16,8 @@ Album title tooltip as expected
 
 1. Create an application in the [Discord Developer Portal](https://discord.com/developers/applications) to get your client ID and secret.
 2. Clone this repository and, assuming you have [Node.js](https://nodejs.org) installed, run `npm install` to install the dependencies.
-3. Copy `config.example.json` to create `config.json` and copy your Koel web client URL and Discord application strings to it respectively.
-4. Run `npm start` to test the application.
+3. Copy `config.example.json` to create `config.json` and copy your Koel web client URL and Discord application strings to it respectively. Put your preferred callback URL in both the config and your Discord application settings - it is required by RPC via OAuth but unused by this application so it can be anything.
+4. Run `npm start` to test the application is working correctly.
 5. Run `npm run build` to package the application for Windows x64. You can modify the `build` script in `package.json` to change the target.
 
 The packaged application will be in the `/builds` directory. You can run the executable or create a shortcut to it for desktop / start menu / taskbar pinning.
