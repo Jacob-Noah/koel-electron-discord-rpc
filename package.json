@@ -3,6 +3,7 @@
   "version": "1.0.0",
   "description": "Koel music player Electron wrapper to make use of Discord RPC.",
   "main": "app.js",
+  "type": "module",
   "scripts": {
     "start": "electron .",
     "build": "npx @electron/packager . --overwrite --platform=win32 --arch=x64 --out=builds --icon=./assets/icon.ico",
@@ -16,9 +17,8 @@
   "license": "MIT",
   "devDependencies": {
     "@electron/packager": "^18.3.6",
-    "electron": "^35.0.2"
-  },
-  "dependencies": {
-    "discord-rpc": "^4.0.1"
+    "@xhayper/discord-rpc": "^1.2.1",
+    "discord-api-types": "^0.38.8",
+    "electron": "^36.3.1"
   }
 }

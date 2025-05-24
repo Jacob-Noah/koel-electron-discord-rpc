@@ -1,9 +1,12 @@
-const { app, BrowserWindow, ipcMain } = require('electron');
-const RPC = require('discord-rpc');
-const path = require('path');
-const fs = require('fs');
-const config = require('./config.json');
-const client = new RPC.Client({ transport: 'ipc' });
+import { app, BrowserWindow, ipcMain } from 'electron';
+import { Client } from "@xhayper/discord-rpc";
+import { ActivityType } from 'discord-api-types/v10';
+import path from 'path';
+import fs from 'fs';
+import config from './config.json' with { type: 'json'};
+
+const __dirname = import.meta.dirname;
+const client = new Client({ 'clientId': config.clientId, 'transport': 'ipc' });
 
 // Path for storing tokens
 const tokenPath = path.join(app.getPath('userData'), 'discord_token.json');
@@ -13,6 +16,10 @@ let tokenData = {
   accessToken: null,
   expiresAt: 0
 };
+
+let lastSentActivityData = null;
+let isIdling = false;
+let idleTimer = null;
 
 // Load any existing token
 try {
@@ -26,11 +33,12 @@ try {
 
 let win;
 let currentSong = {
-  title: 'Listening to Koel',
+  title: '',
   artist: '',
   albumIconUrl: '',
   albumTitle: '',
-  currentTime: new Date()
+  startTimestamp: null,
+  duration: 0
 };
 
 function createWindow() {
@@ -83,33 +91,138 @@ client.on('tokenUpdate', (token) => {
 });
 
 // Handle song update
-ipcMain.on('song-update', (event, songInfo) => {
-  if (currentSong.title !== songInfo.title && !!songInfo.albumTitle) {
-    currentSong = {
-      title: songInfo.title,
-      artist: songInfo.artist,
-      albumIconUrl: songInfo.albumIconUrl,
-      albumTitle: songInfo.albumTitle,
-      startTimestamp: songInfo.currentTime ? Date.now() - (songInfo.currentTime * 1000) : Date.now()
-    };
+ipcMain.on('song-update', async (event, songInfo) => {
+  const songTitle = songInfo.title || '';
+  const albumTitle = songInfo.albumTitle || '';
+  const isPlaying = songInfo.isPlaying;
+  const isStopped = songInfo.isStopped;
 
-    updateDiscordActivity();
+  const songLoaded = songTitle && albumTitle;
+  const wasPreviouslyIdling = isIdling;
+  const wasPreviouslyPausedWithTimer = !!idleTimer;
+
+  if (isPlaying && songLoaded) {
+
+    // New song
+    if (currentSong.title !== songTitle || currentSong.albumTitle !== albumTitle) {
+      console.log('New song detected:', songTitle);
+      if (idleTimer) { clearTimeout(idleTimer); idleTimer = null; }
+      isIdling = false; 
+      currentSong = {
+        title: songTitle,
+        artist: songInfo.artist || 'Unknown Artist',
+        albumIconUrl: songInfo.albumIconUrl || 'logo',
+        albumTitle: albumTitle,
+        startTimestamp: (songInfo.currentTime && songInfo.duration > 0) ? (Date.now() - (songInfo.currentTime * 1000)) : null,
+        duration: songInfo.duration || 0
+      };
+      await updateDiscordActivity(true);
+
+    // Same song (resumed from idle or paused)
+    } else {
+      if (wasPreviouslyIdling || wasPreviouslyPausedWithTimer) {
+        console.log('Resuming playback of song:', songTitle);
+        if (idleTimer) { clearTimeout(idleTimer); idleTimer = null; }
+        isIdling = false;
+        // Recalculate timestamps
+        currentSong.startTimestamp = (songInfo.currentTime && songInfo.duration > 0) ? (Date.now() - (songInfo.currentTime * 1000)) : null;
+        currentSong.duration = songInfo.duration || currentSong.duration || 0;
+        await updateDiscordActivity(true);
+      }
+    }
+
+  // Paused while a song was loaded & current
+  } else if (isStopped && currentSong.title) {
+    if (!idleTimer && !isIdling) {
+      console.log('Player paused with song:', currentSong.title, '. Setting PAUSED activity (no timeline).');
+      // Force update to show paused state (song info without timeline)
+      await updateDiscordActivity(true, false); 
+
+      console.log('Starting idle timer for paused song.');
+      idleTimer = setTimeout(async () => {
+        console.log('Idle timer expired for paused song, transitioning to full idle activity.');
+        await setIdleActivity();
+        idleTimer = null;
+      }, config.idleTimeout);
+    }
+
+  // Not playng (no song, song ended, initial load, or invalid)
+  } else {
+    if (currentSong.title || !isIdling) {
+      if (idleTimer) { clearTimeout(idleTimer); idleTimer = null; }
+      await setIdleActivity();
+    }
   }
 });
 
+// Set idle/browsing activity
+async function setIdleActivity() {
+  if (!client.user) return;
+
+  const idlePayload = {
+    details: 'Browsing Koel',
+    state: 'Looking for music...',
+    largeImageKey: 'logo',
+    largeImageText: 'Koel',
+    instance: true,
+  };
+  const idlePayloadString = JSON.stringify(idlePayload);
+  if (isIdling && lastSentActivityData === idlePayloadString) {
+    return;
+  }
+
+  console.log('Setting idle Discord activity');
+  try {
+    await client.user.setActivity(idlePayload);
+    lastSentActivityData = idlePayloadString; 
+    isIdling = true;
+    currentSong = {
+      title: '', artist: '', albumIconUrl: '', albumTitle: '',
+      startTimestamp: null, duration: 0
+    };
+  } catch (error) {
+    console.error('Failed to set idle activity:', error);
+  }
+}
+
 // Update Discord activity with new song
-function updateDiscordActivity() {
-  console.log('Song updated:', currentSong);
-  client.setActivity({
+async function updateDiscordActivity(forceUpdate = false, includeTimestamps = true) { // Added includeTimestamps parameter
+  if (!client.user) return;
+
+  if (!currentSong.title) {
+    await setIdleActivity();
+    return;
+  }
+
+  isIdling = false;
+
+  const activityData = {
+    type: ActivityType.Listening,
     details: currentSong.title,
     state: `by ${currentSong.artist}`,
     largeImageKey: currentSong.albumIconUrl || 'logo',
     largeImageText: currentSong.albumTitle || 'Koel',
     smallImageKey: 'playing',
-    smallImageText: 'Playing a song',
-    startTimestamp: currentSong.currentTime,
+    smallImageText: currentSong.artist ? `Listening to ${currentSong.artist}` : 'Playing on Koel',
     instance: true,
-  }).catch(console.error);
+  };
+
+  if (includeTimestamps && currentSong.startTimestamp && currentSong.duration > 0) {
+    activityData.startTimestamp = currentSong.startTimestamp;
+    activityData.endTimestamp = currentSong.startTimestamp + (currentSong.duration * 1000);
+  }
+  const activityDataString = JSON.stringify(activityData);
+  if (lastSentActivityData === activityDataString && !forceUpdate) {
+    return;
+  }
+
+  console.log(`Updating Discord activity with song: ${currentSong.title} (Force: ${forceUpdate}, Timestamps: ${includeTimestamps})`);
+  try {
+    await client.user.setActivity(activityData);
+    lastSentActivityData = activityDataString; 
+  } catch (error) {
+    console.error('Failed to push song activity update:', error);
+  }
 }
 
 app.on('ready', () => {

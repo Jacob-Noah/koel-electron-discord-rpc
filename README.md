@@ -2,7 +2,11 @@
 
 ## Description
 
-This is just a really simple Electron wrapper around the [Koel Music Server](https://github.com/koel/koel) web client that sends the current track info to Discord Rich Presence. I love Koel and wanted to integrate it better with my personal use-cases. Hopefully this helps you too since you found yourself here 🤝
+This is just a really simple Electron wrapper around the [Koel Music Server](https://github.com/koel/koel) web client that sends the current track info to Discord Rich Presence. I love Koel and this helps me with my personal use-case for it. Hopefully this helps you too since you found yourself here 🤝❤️ and I encourage you to go show your support to Phan An for making such a great music service.
+
+There are 3 states to this client reflected in Discord RPC: idle browsing, actively playing, and a paused timeout. The default timeout is 1 minute, because I figure if it's paused over 1 minute you probably don't want to be showing it in Discord anymore. You can change this in the config.
+
+Now supports "Listening to" Discord RPC and timeline progress. When paused, the timeline will change to a timer until idle timeout.
 
 ## Examples
 ![Example 1](/examples/1.png)

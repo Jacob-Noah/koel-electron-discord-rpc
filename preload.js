@@ -16,10 +16,24 @@ window.addEventListener('DOMContentLoaded', () => {
 
       const albumTitle = document.querySelector('#extraPanelAlbum .aside h3')?.textContent;
 
-      // Get current time and duration via seek range
-      const timeRange = document.querySelector('.plyr__progress .plyr__progress-seek');
-      const currentTime = timeRange ? timeRange.value : 0;
-      const duration = timeRange ? timeRange.max : 0;
+      // Get current time and duration from the actual audio element
+      const audioElement = document.querySelector('.plyr--audio audio');
+      let currentTime = 0;
+      let duration = 0;
+
+      // <audio>.currentTime is in seconds but can be NaN or Infinity
+      if (audioElement) {
+        if (typeof audioElement.currentTime === 'number' && isFinite(audioElement.currentTime)) {
+          currentTime = audioElement.currentTime;
+        }
+        if (typeof audioElement.duration === 'number' && isFinite(audioElement.duration) && audioElement.duration > 0) {
+          duration = audioElement.duration;
+        }
+      }
+
+      const player = document.querySelector('.plyr--audio');
+      const isPlaying = player && player.classList.contains('plyr--playing');
+      const isStopped = player && player.classList.contains('plyr--stopped');
 
       if (songTitle) {
         ipcRenderer.send('song-update', {
@@ -28,7 +42,9 @@ window.addEventListener('DOMContentLoaded', () => {
           albumIconUrl: album,
           albumTitle,
           currentTime,
-          duration
+          duration,
+          isPlaying,
+          isStopped
         });
       }
     } catch (err) {
